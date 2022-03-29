@@ -18,13 +18,15 @@ Right click on a dart file and select of the commands mentioned below.
 
 ### createTest
 
-Creates an empty test file for a dart file in `lib`.
+Creates an empty test file for a selected dart file in `lib`.
 
 ![](images/createTest.gif)
 
 ### openTest
 
-Opens a test file for a dart file in `lib`.
+Opens a test file for a selected dart file in `lib`.
+
+![](images/openTest.gif)
 
 ## Conventions
 
