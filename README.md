@@ -26,6 +26,11 @@ Creates an empty test file for a dart file in `lib`.
 
 Opens a test file for a dart file in `lib`.
 
+## Conventions
+
+- Given files `lib/screens/home_screen.dart` and `lib/src/models/user.dart`, this extension determines the corresponding test paths as `test/screens/home_screen.dart` and `test/models/user.dart` respectively.
+- Part files such as `user.g.dart`, `user.freezed.dart` and `cubit.part.dart` are automatically convert to their main file `user.dart` etc.
+
 ## Disclaimer
 
 * This extension will create files on your hard drive, and if necessary, recursively create folders. Although no files should be overridden, no data loss guarantees are given.
