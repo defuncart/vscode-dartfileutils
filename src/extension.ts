@@ -2,26 +2,26 @@ import * as vscode from 'vscode';
 
 export function activate(context: vscode.ExtensionContext) {
 	// callback for dartfileutils.createTest
-	let disposable = vscode.commands.registerCommand('dartfileutils.createTest', async (uri: vscode.Uri) => {
-		const outputRelativePath = determineRelativeTestPath(uri);
-		if (typeof outputRelativePath === 'undefined') {
+	let createTest = vscode.commands.registerCommand('dartfileutils.createTest', async (uri: vscode.Uri) => {
+		const relativePath = determineRelativeTestPath(uri);
+		if (typeof relativePath === 'undefined') {
 			return;
 		}
-		const outputAbsolutePath = determineAbsoluteTestPath(outputRelativePath);
+		const absolutePath = determineAbsoluteTestPath(relativePath);
 
 		// create file if it does not already exist
-		if (!(await fileExists(outputAbsolutePath))) {
+		if (!(await fileExists(absolutePath))) {
 			const wsEdit = new vscode.WorkspaceEdit();
-			wsEdit.createFile(outputAbsolutePath, { ignoreIfExists: true });
-			wsEdit.insert(outputAbsolutePath, new vscode.Position(0, 0), 'void main() {\n\t/// TODO add test content\n}');
-			vscode.workspace.applyEdit(wsEdit).then(() => vscode.workspace.openTextDocument(outputAbsolutePath)).then((document) => {
+			wsEdit.createFile(absolutePath, { ignoreIfExists: true });
+			wsEdit.insert(absolutePath, new vscode.Position(0, 0), 'void main() {\n\t/// TODO add test content\n}');
+			vscode.workspace.applyEdit(wsEdit).then(() => vscode.workspace.openTextDocument(absolutePath)).then((document) => {
 				document.save();
 				vscode.window.showTextDocument(document, 0, false);
 			});
-			vscode.window.showInformationMessage('Created ' + outputRelativePath);
+			vscode.window.showInformationMessage('Created ' + relativePath);
 		} else {
-			console.warn('dartfileutils.createTest: File ' + outputRelativePath + ' already exists!');
-			vscode.window.showWarningMessage('File ' + outputRelativePath + ' already exists!');
+			console.warn('dartfileutils.createTest: File ' + relativePath + ' already exists!');
+			vscode.window.showWarningMessage('File ' + relativePath + ' already exists!');
 		}
 	});
 
@@ -71,11 +71,10 @@ export function activate(context: vscode.ExtensionContext) {
 		var inputRelativePath = vscode.workspace.asRelativePath(uri);
 		inputRelativePath = inputRelativePath.replace('/\\/g', '/');
 
-		// ignore part files
-		if (inputRelativePath.endsWith('.part.dart') || inputRelativePath.endsWith('.g.dart') || inputRelativePath.endsWith('.freezed.dart')) {
-			console.warn('dartfileutils.createTest: ' + inputRelativePath + ' is a part file. Ignoring.');
-			vscode.window.showWarningMessage(inputRelativePath + ' is a part file. Ignoring.');
-			return;
+		// convert part paths
+		const partTypes = ['part', 'g', 'freezed'];
+		for (let part of partTypes) {
+			inputRelativePath = replacePart(inputRelativePath, part);
 		}
 
 		// determine relative path
@@ -116,7 +115,17 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	}
 
-	context.subscriptions.push(disposable);
+	let replacePart = function (path: string, part: string): string {
+		const pathExtension = `${part}.dart`;
+		if (path.endsWith(pathExtension)) {
+			const initialPath = path;
+			path = path.replace(pathExtension, '.dart');
+			console.debug(`dartfileutils.createTest: ${initialPath} is a part file. Converted to ${path}.`);
+		}
+		return path;
+	}
+
+	context.subscriptions.push(createTest);
 	context.subscriptions.push(openTest);
 }
 
