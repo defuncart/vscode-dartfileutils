@@ -20,8 +20,8 @@ export function activate(context: vscode.ExtensionContext) {
 			});
 			vscode.window.showInformationMessage('Created ' + relativePath);
 		} else {
-			console.warn('dartfileutils.createTest: File ' + relativePath + ' already exists!');
-			vscode.window.showWarningMessage('File ' + relativePath + ' already exists!');
+			console.debug('dartfileutils.createTest: File ' + relativePath + ' already exists! Opening.');
+			openFile(relativePath, absolutePath);
 		}
 	});
 
@@ -33,7 +33,23 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 		const absolutePath = determineAbsoluteTestPath(relativePath);
 
-		// create file if it does not already exist
+		// try to open file
+		openFile(relativePath, absolutePath);
+	});
+
+	// determines if a file exists without needing to open it
+	let fileExists = async function (path: vscode.Uri): Promise<boolean> {
+		try {
+			await vscode.workspace.fs.stat(path);
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	// opens a file absolutePath. relativePath is used for console message.
+	let openFile = async function (relativePath: string, absolutePath: vscode.Uri) {
+		// open file if it exists
 		if ((await fileExists(absolutePath))) {
 			vscode.workspace.openTextDocument(absolutePath).then((document) => {
 				vscode.window.showTextDocument(document, 0, false);
@@ -42,7 +58,7 @@ export function activate(context: vscode.ExtensionContext) {
 			console.warn('dartfileutils.openTest: File ' + relativePath + ' does not exists!');
 			vscode.window.showWarningMessage('File ' + relativePath + ' does not exists!');
 		}
-	});
+	}
 
 	// determines the relative file path for a class in test folder using a uri from lib
 	let determineRelativeTestPath = function (uri: vscode.Uri): string | undefined {
@@ -103,16 +119,6 @@ export function activate(context: vscode.ExtensionContext) {
 		const outputAbsolutePath = vscode.Uri.file(wsPath + '/' + relativePath);
 
 		return outputAbsolutePath;
-	}
-
-	// determines if a file exists without needing to open it
-	let fileExists = async function (path: vscode.Uri): Promise<boolean> {
-		try {
-			await vscode.workspace.fs.stat(path);
-			return true;
-		} catch {
-			return false;
-		}
 	}
 
 	let replacePart = function (path: string, part: string): string {
