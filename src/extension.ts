@@ -25,6 +25,25 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	});
 
+	// callback for dartfileutils.openTest
+	let openTest = vscode.commands.registerCommand('dartfileutils.openTest', async (uri: vscode.Uri) => {
+		const relativePath = determineRelativeTestPath(uri);
+		if (typeof relativePath === 'undefined') {
+			return;
+		}
+		const absolutePath = determineAbsoluteTestPath(relativePath);
+
+		// create file if it does not already exist
+		if ((await fileExists(absolutePath))) {
+			vscode.workspace.openTextDocument(absolutePath).then((document) => {
+				vscode.window.showTextDocument(document, 0, false);
+			});
+		} else {
+			console.warn('dartfileutils.openTest: File ' + relativePath + ' does not exists!');
+			vscode.window.showWarningMessage('File ' + relativePath + ' does not exists!');
+		}
+	});
+
 	// determines the relative file path for a class in test folder using a uri from lib
 	let determineRelativeTestPath = function (uri: vscode.Uri): string | undefined {
 		// if no uri given (i.e. not triggered from context menu), set uri as active file (when file is a dart file)
@@ -98,6 +117,7 @@ export function activate(context: vscode.ExtensionContext) {
 	}
 
 	context.subscriptions.push(disposable);
+	context.subscriptions.push(openTest);
 }
 
 export function deactivate() { }

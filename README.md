@@ -22,6 +22,10 @@ Creates an empty test file for a dart file in `lib`.
 
 ![](images/createTest.gif)
 
+### openTest
+
+Opens a test file for a dart file in `lib`.
+
 ## Disclaimer
 
 * This extension will create files on your hard drive, and if necessary, recursively create folders. Although no files should be overridden, no data loss guarantees are given.

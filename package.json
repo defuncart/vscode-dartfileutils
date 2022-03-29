@@ -16,7 +16,8 @@
 		"files"
 	],
 	"activationEvents": [
-		"onCommand:dartfileutils.createTest"
+		"onCommand:dartfileutils.createTest",
+		"onCommand:dartfileutils.openTest"
 	],
 	"bugs": {
 		"url": "https://github.com/defuncart/vscode-dartfileutils/issues"
@@ -33,6 +34,11 @@
 				"command": "dartfileutils.createTest",
 				"category": "Dart File Utils",
 				"title": "Create Test"
+			},
+			{
+				"command": "dartfileutils.openTest",
+				"category": "Dart File Utils",
+				"title": "Open Test"
 			}
 		],
 		"menus": {
@@ -41,12 +47,22 @@
 					"when": "resourceLangId == dart",
 					"command": "dartfileutils.createTest",
 					"group": "dartfileutils"
+				},
+				{
+					"when": "resourceLangId == dart",
+					"command": "dartfileutils.openTest",
+					"group": "dartfileutils"
 				}
 			],
 			"editor/title/context": [
 				{
 					"when": "resourceLangId == dart",
 					"command": "dartfileutils.createTest",
+					"group": "dartfileutils"
+				},
+				{
+					"when": "resourceLangId == dart",
+					"command": "dartfileutils.openTest",
 					"group": "dartfileutils"
 				}
 			]
