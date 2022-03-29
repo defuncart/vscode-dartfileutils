@@ -3,6 +3,30 @@ import * as vscode from 'vscode';
 export function activate(context: vscode.ExtensionContext) {
 	// callback for dartfileutils.createTest
 	let disposable = vscode.commands.registerCommand('dartfileutils.createTest', async (uri: vscode.Uri) => {
+		const outputRelativePath = determineRelativeTestPath(uri);
+		if (typeof outputRelativePath === 'undefined') {
+			return;
+		}
+		const outputAbsolutePath = determineAbsoluteTestPath(outputRelativePath);
+
+		// create file if it does not already exist
+		if (!(await fileExists(outputAbsolutePath))) {
+			const wsEdit = new vscode.WorkspaceEdit();
+			wsEdit.createFile(outputAbsolutePath, { ignoreIfExists: true });
+			wsEdit.insert(outputAbsolutePath, new vscode.Position(0, 0), 'void main() {\n\t/// TODO add test content\n}');
+			vscode.workspace.applyEdit(wsEdit).then(() => vscode.workspace.openTextDocument(outputAbsolutePath)).then((document) => {
+				document.save();
+				vscode.window.showTextDocument(document, 0, false);
+			});
+			vscode.window.showInformationMessage('Created ' + outputRelativePath);
+		} else {
+			console.warn('dartfileutils.createTest: File ' + outputRelativePath + ' already exists!');
+			vscode.window.showWarningMessage('File ' + outputRelativePath + ' already exists!');
+		}
+	});
+
+	// determines the relative file path for a class in test folder using a uri from lib
+	let determineRelativeTestPath = function (uri: vscode.Uri): string | undefined {
 		// if no uri given (i.e. not triggered from context menu), set uri as active file (when file is a dart file)
 		if (typeof uri === 'undefined') {
 			if (vscode.window.activeTextEditor) {
@@ -35,7 +59,7 @@ export function activate(context: vscode.ExtensionContext) {
 			return;
 		}
 
-		// determine relative output path
+		// determine relative path
 		// TODO test on windows, linux
 		var outputRelativePath = null;
 		if (inputRelativePath.startsWith('lib/')) {
@@ -51,25 +75,17 @@ export function activate(context: vscode.ExtensionContext) {
 			return;
 		}
 
-		// determine absolute output path
-		const wsEdit = new vscode.WorkspaceEdit();
-		const wsPath = vscode.workspace.workspaceFolders![0]!.uri.fsPath;
-		const outputAbsolutePath = vscode.Uri.file(wsPath + '/' + outputRelativePath);
+		return outputRelativePath;
+	}
 
-		// create file if it does not already exist
-		if (!(await fileExists(outputAbsolutePath))) {
-			wsEdit.createFile(outputAbsolutePath, { ignoreIfExists: true });
-			wsEdit.insert(outputAbsolutePath, new vscode.Position(0, 0), 'void main() {\n\t/// TODO add test content\n}');
-			vscode.workspace.applyEdit(wsEdit).then(() => vscode.workspace.openTextDocument(outputAbsolutePath)).then((document) => {
-				document.save();
-				vscode.window.showTextDocument(document, 0, false);
-			});
-			vscode.window.showInformationMessage('Created ' + outputRelativePath);
-		} else {
-			console.warn('dartfileutils.createTest: File ' + outputRelativePath + ' already exists!');
-			vscode.window.showWarningMessage('File ' + outputRelativePath + ' already exists!');
-		}
-	});
+	// determines the absolute file path for a relative path
+	let determineAbsoluteTestPath = function (relativePath: string): vscode.Uri {
+		// TODO test on windows, linux
+		const wsPath = vscode.workspace.workspaceFolders![0]!.uri.fsPath;
+		const outputAbsolutePath = vscode.Uri.file(wsPath + '/' + relativePath);
+
+		return outputAbsolutePath;
+	}
 
 	// determines if a file exists without needing to open it
 	let fileExists = async function (path: vscode.Uri): Promise<boolean> {
