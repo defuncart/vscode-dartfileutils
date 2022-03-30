@@ -2,6 +2,8 @@
 
 A Visual Studio Code extension with useful utils for dart files.
 
+**NOTE** Although `dart.goToTestOrImplementationFile` from [Dart Code](https://marketplace.visualstudio.com/items?itemName=Dart-Code.dart-code) allows the opening/creation of dart tests, it does not support context menus.
+
 ## How to Use
 
 ### Command Palette
@@ -18,9 +20,20 @@ Right click on a dart file and select of the commands mentioned below.
 
 ### createTest
 
-Creates an empty test file for a dart file in `lib`.
+Creates an empty test file for a selected dart file in `lib`.
 
 ![](images/createTest.gif)
+
+### openTest
+
+Opens a test file for a selected dart file in `lib`.
+
+![](images/openTest.gif)
+
+## Conventions
+
+- Given files `lib/screens/home_screen.dart` and `lib/src/models/user.dart`, this extension determines the corresponding test paths as `test/screens/home_screen.dart` and `test/models/user.dart` respectively.
+- Part files such as `user.g.dart`, `user.freezed.dart` and `cubit.part.dart` are automatically convert to their main file `user.dart` etc.
 
 ## Disclaimer
 

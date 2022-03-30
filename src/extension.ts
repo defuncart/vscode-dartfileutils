@@ -2,7 +2,66 @@ import * as vscode from 'vscode';
 
 export function activate(context: vscode.ExtensionContext) {
 	// callback for dartfileutils.createTest
-	let disposable = vscode.commands.registerCommand('dartfileutils.createTest', async (uri: vscode.Uri) => {
+	let createTest = vscode.commands.registerCommand('dartfileutils.createTest', async (uri: vscode.Uri) => {
+		const relativePath = determineRelativeTestPath(uri);
+		if (typeof relativePath === 'undefined') {
+			return;
+		}
+		const absolutePath = determineAbsoluteTestPath(relativePath);
+
+		// create file if it does not already exist
+		if (!(await fileExists(absolutePath))) {
+			const wsEdit = new vscode.WorkspaceEdit();
+			wsEdit.createFile(absolutePath, { ignoreIfExists: true });
+			wsEdit.insert(absolutePath, new vscode.Position(0, 0), 'void main() {\n\t/// TODO add test content\n}');
+			vscode.workspace.applyEdit(wsEdit).then(() => vscode.workspace.openTextDocument(absolutePath)).then((document) => {
+				document.save();
+				vscode.window.showTextDocument(document, 0, false);
+			});
+			vscode.window.showInformationMessage('Created ' + relativePath);
+		} else {
+			console.debug('dartfileutils.createTest: File ' + relativePath + ' already exists! Opening.');
+			openFile(relativePath, absolutePath);
+		}
+	});
+
+	// callback for dartfileutils.openTest
+	let openTest = vscode.commands.registerCommand('dartfileutils.openTest', async (uri: vscode.Uri) => {
+		const relativePath = determineRelativeTestPath(uri);
+		if (typeof relativePath === 'undefined') {
+			return;
+		}
+		const absolutePath = determineAbsoluteTestPath(relativePath);
+
+		// try to open file
+		openFile(relativePath, absolutePath);
+	});
+
+	// determines if a file exists without needing to open it
+	let fileExists = async function (path: vscode.Uri): Promise<boolean> {
+		try {
+			await vscode.workspace.fs.stat(path);
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	// opens a file absolutePath. relativePath is used for console message.
+	let openFile = async function (relativePath: string, absolutePath: vscode.Uri) {
+		// open file if it exists
+		if ((await fileExists(absolutePath))) {
+			vscode.workspace.openTextDocument(absolutePath).then((document) => {
+				vscode.window.showTextDocument(document, 0, false);
+			});
+		} else {
+			console.warn('dartfileutils.openTest: File ' + relativePath + ' does not exists!');
+			vscode.window.showWarningMessage('File ' + relativePath + ' does not exists!');
+		}
+	}
+
+	// determines the relative file path for a class in test folder using a uri from lib
+	let determineRelativeTestPath = function (uri: vscode.Uri): string | undefined {
 		// if no uri given (i.e. not triggered from context menu), set uri as active file (when file is a dart file)
 		if (typeof uri === 'undefined') {
 			if (vscode.window.activeTextEditor) {
@@ -28,14 +87,13 @@ export function activate(context: vscode.ExtensionContext) {
 		var inputRelativePath = vscode.workspace.asRelativePath(uri);
 		inputRelativePath = inputRelativePath.replace('/\\/g', '/');
 
-		// ignore part files
-		if (inputRelativePath.endsWith('.part.dart') || inputRelativePath.endsWith('.g.dart') || inputRelativePath.endsWith('.freezed.dart')) {
-			console.warn('dartfileutils.createTest: ' + inputRelativePath + ' is a part file. Ignoring.');
-			vscode.window.showWarningMessage(inputRelativePath + ' is a part file. Ignoring.');
-			return;
+		// convert part paths
+		const partTypes = ['part', 'g', 'freezed'];
+		for (let part of partTypes) {
+			inputRelativePath = replacePart(inputRelativePath, part);
 		}
 
-		// determine relative output path
+		// determine relative path
 		// TODO test on windows, linux
 		var outputRelativePath = null;
 		if (inputRelativePath.startsWith('lib/')) {
@@ -51,37 +109,30 @@ export function activate(context: vscode.ExtensionContext) {
 			return;
 		}
 
-		// determine absolute output path
-		const wsEdit = new vscode.WorkspaceEdit();
-		const wsPath = vscode.workspace.workspaceFolders![0]!.uri.fsPath;
-		const outputAbsolutePath = vscode.Uri.file(wsPath + '/' + outputRelativePath);
-
-		// create file if it does not already exist
-		if (!(await fileExists(outputAbsolutePath))) {
-			wsEdit.createFile(outputAbsolutePath, { ignoreIfExists: true });
-			wsEdit.insert(outputAbsolutePath, new vscode.Position(0, 0), 'void main() {\n\t/// TODO add test content\n}');
-			vscode.workspace.applyEdit(wsEdit).then(() => vscode.workspace.openTextDocument(outputAbsolutePath)).then((document) => {
-				document.save();
-				vscode.window.showTextDocument(document, 0, false);
-			});
-			vscode.window.showInformationMessage('Created ' + outputRelativePath);
-		} else {
-			console.warn('dartfileutils.createTest: File ' + outputRelativePath + ' already exists!');
-			vscode.window.showWarningMessage('File ' + outputRelativePath + ' already exists!');
-		}
-	});
-
-	// determines if a file exists without needing to open it
-	let fileExists = async function (path: vscode.Uri): Promise<boolean> {
-		try {
-			await vscode.workspace.fs.stat(path);
-			return true;
-		} catch {
-			return false;
-		}
+		return outputRelativePath;
 	}
 
-	context.subscriptions.push(disposable);
+	// determines the absolute file path for a relative path
+	let determineAbsoluteTestPath = function (relativePath: string): vscode.Uri {
+		// TODO test on windows, linux
+		const wsPath = vscode.workspace.workspaceFolders![0]!.uri.fsPath;
+		const outputAbsolutePath = vscode.Uri.file(wsPath + '/' + relativePath);
+
+		return outputAbsolutePath;
+	}
+
+	let replacePart = function (path: string, part: string): string {
+		const pathExtension = `${part}.dart`;
+		if (path.endsWith(pathExtension)) {
+			const initialPath = path;
+			path = path.replace(pathExtension, '.dart');
+			console.debug(`dartfileutils.createTest: ${initialPath} is a part file. Converted to ${path}.`);
+		}
+		return path;
+	}
+
+	context.subscriptions.push(createTest);
+	context.subscriptions.push(openTest);
 }
 
 export function deactivate() { }
