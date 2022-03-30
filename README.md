@@ -2,6 +2,8 @@
 
 A Visual Studio Code extension with useful utils for dart files.
 
+**NOTE** Although `dart.goToTestOrImplementationFile` from [Dart Code](https://marketplace.visualstudio.com/items?itemName=Dart-Code.dart-code) allows the opening/creation of dart tests, it does not support context menus.
+
 ## How to Use
 
 ### Command Palette
